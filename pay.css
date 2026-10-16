@@ -1,0 +1,207 @@
+/* 独立支付页 · 与管理台同一套设计语言
+ *
+ * 刻意对齐 server/admin/styles.css 的色板与几何（同一画布色、同一主色、同样的 7px 控件圆角
+ * 与 12px 面板圆角），因为这两个界面是同一个系统的两端：买家在付款页看到的金额和状态，
+ * 与管理员在后台看到的必须像是同一个产品说出来的话。
+ *
+ * 两条不能为了好看而牺牲的约束：
+ * 1) 不引任何外链字体。Google Fonts 在大陆拿不到时，付款页会为一个字形转圈。
+ * 2) 收款码必须落在不透明白底上，半透明或灰底会让对比度不足而扫不出来。
+ */
+
+:root {
+  color-scheme: light;
+  --canvas: #f5f5f7;
+  --surface: #ffffff;
+  --surface-soft: #f9f9fb;
+  --ink: #1c1c21;
+  --muted: #5f5f6a;
+  --faint: #8f8f9a;
+  --line: #e6e6ea;
+  --accent: #a83d94;
+  --accent-dark: #7e2a6d;
+  --accent-soft: #f7ecf5;
+  --success: #237c58;
+  --warning: #a36b16;
+  --warning-soft: #fdf3e2;
+  --danger: #b54848;
+  --alipay: #1677ff;
+  --wechat: #12b46a;
+  --shadow: 0 18px 44px rgba(20, 20, 26, .07), 0 2px 8px rgba(20, 20, 26, .04);
+  --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+  font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); line-height: 1.55; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+a { color: inherit; }
+h1, h2, p { margin: 0; }
+/* 组件自己声明 display:grid/flex 会盖掉 UA 的 [hidden]{display:none}（同为一条特异性，作者表赢），
+   于是"隐藏"中的面板会渲染成一个空白盒子。整站的 hidden 属性由这一条兜底，别靠每个组件自己记。 */
+[hidden] { display: none !important; }
+h1 { font-size: clamp(26px, 6vw, 34px); letter-spacing: -.035em; line-height: 1.12; }
+h2 { font-size: 18px; letter-spacing: -.02em; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 62px; padding: 0 20px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+/* 单行字标：双行品牌块会让右侧按钮对齐到「两行的中心」而不是字标的中心，
+   看着就是按钮低了一截。副标题本来和页面自己的 kicker 重复，直接去掉。 */
+.brand { color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -.025em; text-decoration: none; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.shell { width: min(560px, 100%); margin: 0 auto; padding: 26px 16px calc(env(safe-area-inset-bottom, 0px) + 44px); }
+.intro-row { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.eyebrow { color: var(--accent-dark); font-size: 10px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; margin-bottom: 8px; }
+h1 { margin-bottom: 6px; }
+/* 联系方式是买家最可能要复制的东西：号码用等宽并整段可选，
+   手机上长按就能选中，不会连着中文一起被选走。 */
+.contact-line { margin-bottom: 5px; color: var(--muted); font-size: 13px; }
+.contact-line b { color: var(--ink); font-family: var(--mono); font-size: 12.5px; user-select: all; }
+.contact-line a { color: var(--accent-dark); font-weight: 650; }
+.contact-line a:hover { text-decoration: underline; }
+.intro-copy { color: var(--muted); font-size: 13px; }
+.connection-state { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.connection-state::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--faint); vertical-align: 1px; }
+.connection-state[data-state="ok"] { color: var(--success); }
+.connection-state[data-state="ok"]::before { background: var(--success); }
+.connection-state[data-state="down"] { color: var(--danger); }
+.connection-state[data-state="down"]::before { background: var(--danger); }
+
+.panel { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.stage { display: grid; gap: 16px; }
+
+.field { display: grid; gap: 7px; }
+.field > span, .field-caption { color: var(--muted); font-size: 12px; }
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+input {
+  width: 100%; height: 40px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 7px; outline: none;
+  background: var(--surface-soft); color: var(--ink); font-size: 14px;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+input::placeholder { color: var(--faint); }
+input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(168, 61, 148, .13); }
+input[readonly] { color: var(--muted); background: #eef1ec; }
+
+/* 选项：方角卡片 + 主色描边，不用胶囊也不用玻璃。 */
+.option-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.option-row.two { grid-auto-columns: minmax(0, 1fr); }
+.option {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 52px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--surface-soft); color: var(--muted);
+  font-size: 13px; font-weight: 600;
+  transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+}
+.option b { font-size: 15px; letter-spacing: -.01em; }
+.option i { font-style: normal; color: var(--faint); font-family: var(--mono); font-size: 12px; }
+.option:hover:not(:disabled) { border-color: #d5d5dd; transform: translateY(-1px); }
+.option[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.option[aria-checked="true"] i { color: var(--accent-dark); }
+.option:disabled { transform: none; }
+.chip { width: 19px; height: 19px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 5px; color: #fff; font-size: 10px; font-weight: 700; }
+.chip.alipay { background: var(--alipay); }
+.chip.wechat { background: var(--wechat); }
+
+.form { display: grid; gap: 13px; }
+.hint { color: var(--faint); font-size: 11px; line-height: 1.65; }
+.hint.center { text-align: center; }
+.hint a { color: var(--accent-dark); font-weight: 650; }
+.hint.is-error { color: var(--danger); font-weight: 650; }
+
+/* 顶栏那两个是 <a class="button">：在 flex 容器里会被块化成 display:block，
+   于是 38px 的盒子配上 18.6px 的行盒，文字贴在盒子顶部——看着就是字没在按钮里居中。
+   显式用 inline-flex 居中并把行高收到 1，链接和 <button> 表现才一致。 */
+.button { display: inline-flex; align-items: center; justify-content: center; line-height: 1; min-height: 38px; padding: 0 14px; border: 1px solid transparent; border-radius: 7px; white-space: nowrap; font-size: 12px; font-weight: 650; transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease; }
+.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:active:not(:disabled) { transform: translateY(0); }
+.button:focus-visible { outline: 3px solid rgba(168, 61, 148, .3); outline-offset: 2px; }
+.button-primary { background: var(--accent); color: #fff; box-shadow: 0 5px 14px rgba(168, 61, 148, .2); }
+.button-primary:hover:not(:disabled) { background: var(--accent-dark); }
+/* 禁用态不用整颗淡出（opacity 会把字也一起淡掉，白字压在淡紫上就读不动了），
+   改成实色的浅底 + 墨字，靠「没有底色重量」来表达不可点。 */
+.button-primary:disabled { opacity: 1; background: var(--accent-soft); color: var(--ink); box-shadow: none; }
+.button-quiet { border-color: var(--line); background: var(--surface); color: var(--muted); }
+.button-quiet:hover:not(:disabled) { border-color: #d5d5dd; background: var(--surface-soft); color: var(--ink); }
+.cta { width: 100%; min-height: 44px; font-size: 14px; }
+
+/* 库存只给粗档位（充足 / 不多 / 售罄），服务端也只回这三档，不暴露精确余量。 */
+.stock { margin-left: 8px; padding: 2px 8px; border: 1px solid #cfe0d6; border-radius: 99px; background: #eef7f1; color: var(--success); font-size: 10px; font-weight: 650; font-style: normal; }
+.stock[data-level="low"] { border-color: #edd9b4; background: var(--warning-soft); color: var(--warning); }
+.stock[data-level="out"] { border-color: #e7b4ad; background: var(--accent-soft); color: var(--danger); }
+
+/* 付款态 */
+.pay-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.pay-head .eyebrow { margin-bottom: 4px; }
+.amount { font-family: var(--mono); font-size: 38px; font-weight: 700; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown { display: grid; justify-items: end; gap: 3px; padding-top: 14px; }
+.clock { font-family: var(--mono); font-size: 18px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.timer-state { color: var(--muted); font-size: 11px; }
+.countdown[data-expired="true"] .clock, .countdown[data-expired="true"] .timer-state { color: var(--danger); }
+.timer-track { height: 3px; border-radius: 99px; background: #e8ece7; overflow: hidden; }
+.timer-fill { height: 100%; background: var(--accent); transform-origin: left center; transform: scaleX(var(--left, 1)); transition: transform 1s linear; }
+
+.mustpay { padding: 10px 12px; border: 1px solid #eddcb8; border-left: 3px solid var(--warning); border-radius: 7px; background: var(--warning-soft); color: var(--warning); font-size: 12px; font-weight: 650; }
+
+.plate { justify-self: center; width: min(238px, 74vw); aspect-ratio: 1; display: grid; place-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 8px 22px rgba(20, 20, 26, .08); }
+.plate img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.plate-fallback { color: var(--danger); font-size: 12px; text-align: center; }
+
+.code-item { padding: 14px 12px; border: 1px solid #e2c3dd; border-radius: 7px; background: var(--accent-soft); color: var(--accent-dark); font: 650 15px/1.4 var(--mono); letter-spacing: .04em; text-align: center; user-select: all; overflow-wrap: anywhere; }
+
+.footnote { margin-top: 14px; color: var(--faint); font-size: 11px; text-align: center; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); z-index: 40;
+  max-width: min(360px, calc(100vw - 32px)); padding: 11px 16px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink);
+  box-shadow: var(--shadow); font-size: 13px; text-align: center;
+  opacity: 0; transform: translate(-50%, 10px); pointer-events: none;
+  transition: opacity .18s ease, transform .22s ease;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* 查订单页 */
+.querybar { display: flex; gap: 8px; }
+.querybar input { flex: 1; min-width: 0; }
+.results { display: grid; gap: 12px; }
+.empty { color: var(--faint); font-size: 12px; line-height: 1.7; }
+.order { display: grid; gap: 12px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.order-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.order-title { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.badge { padding: 3px 9px; border: 1px solid #cfe0d6; border-radius: 99px; background: #eef7f1; color: var(--success); font-size: 10px; font-weight: 650; }
+.badge.is-warn { border-color: #e7b4ad; background: var(--accent-soft); color: var(--danger); }
+.order-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 0; }
+.order-meta dt { color: var(--faint); font-size: 10px; }
+.order-meta dd { margin: 2px 0 0; color: var(--ink); font: 600 12px/1.5 var(--mono); overflow-wrap: anywhere; }
+.reveal { display: flex; gap: 8px; }
+.reveal input { flex: 1; min-width: 0; }
+.reveal .button { min-height: 40px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (min-width: 640px) {
+  .topbar { padding: 0 32px; }
+  .shell { padding-top: 38px; }
+  .panel { padding: 24px; }
+}
+
+/* 顶栏装的是「字标 + 两颗按钮」。实测 320px 时两者总宽正好等于 320，零余量——换个字体渲染
+   就挤出横向滚动条。字标是装饰性的（品牌名一眼能认出），所以窄屏先收字标和内边距，
+   两颗按钮都留着：买家多半是从群里点进来的，少一个入口就是真的少一个入口。 */
+@media (max-width: 380px) {
+  .topbar { padding: 0 14px; gap: 10px; }
+  .brand { font-size: 17px; }
+  .topbar-actions { gap: 6px; }
+  .topbar-actions .button { padding: 0 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="description" content="LeagueYunara 密钥版授权购买：支付宝或微信扫码，到账自动发码，凭联系方式与查询密码随时找回。" />
+    <title>购买授权 · LeagueYunara</title>
+    <link rel="icon" href="./assets/mark.png" type="image/png" />
+    <!-- 库存查询在 pay.js 初始化时就要打 Supabase；提前握手，省掉那次 DNS+TCP+TLS 排队 -->
+    <link rel="preconnect" href="https://kzqgphxrghdclkwneqyn.supabase.co" crossorigin />
+    <link rel="stylesheet" href="./pay.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./">LeagueYunara</a>
+      <nav class="topbar-actions">
+        <a class="button button-quiet" href="./query.html">查订单</a>
+        <a class="button button-quiet" href="./unbind.html">解绑</a>
+        <a class="button button-quiet" href="https://shop.re2347.ccwu.cc/">官网</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <div class="intro-row">
+        <div>
+          <p class="eyebrow">PAYMENT</p>
+          <h1>购买授权</h1>
+          <p class="contact-line">软件获取方式：加 Q 群 <b>712178830</b> 或添加微信 <b>Re2347</b></p>
+          <p class="contact-line">安装包下载：<a href="https://wwboj.lanzouc.com/b01euq54ah" target="_blank" rel="noopener noreferrer">蓝奏云</a> 提取码 <b>c1le</b></p>
+          <p class="intro-copy">选时长并留下取货凭证，生成订单后按精确金额扫码付款。</p>
+        </div>
+        <span class="connection-state" id="service-state">服务自检中</span>
+      </div>
+
+      <section class="panel" id="island" aria-live="polite">
+        <!-- 1 · 选择与登记 -->
+        <div class="stage" data-stage="setup">
+          <div class="field">
+            <span class="field-caption">授权时长<em class="stock" id="stock" data-level="ok" hidden>库存充足</em></span>
+            <div class="option-row" role="radiogroup" aria-label="授权时长">
+              <button class="option" type="button" role="radio" aria-checked="false" data-plan="1"><b>1 天</b><i>￥5</i></button>
+              <button class="option" type="button" role="radio" aria-checked="true" data-plan="7"><b>7 天</b><i>￥10</i></button>
+              <button class="option" type="button" role="radio" aria-checked="false" data-plan="30"><b>30 天</b><i>￥20</i></button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field-caption">支付方式</span>
+            <div class="option-row two" role="radiogroup" aria-label="支付方式">
+              <button class="option" type="button" role="radio" aria-checked="true" data-method="alipay"><span class="chip alipay">支</span>支付宝</button>
+              <button class="option" type="button" role="radio" aria-checked="false" data-method="wechat"><span class="chip wechat">微</span>微信支付</button>
+            </div>
+          </div>
+
+          <form id="order-form" class="form" novalidate>
+            <label class="field">
+              <span>联系方式</span>
+              <input id="contact" type="text" autocomplete="email" inputmode="email" maxlength="200" placeholder="邮箱或 11 位手机号，用于找回订单" required />
+            </label>
+            <div class="field-pair">
+              <label class="field">
+                <span>查询密码</span>
+                <input id="password" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="4–64 位" required />
+              </label>
+              <label class="field">
+                <span>确认密码</span>
+                <input id="password2" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="再输入一次" required />
+              </label>
+            </div>
+            <p class="hint" id="form-hint">密码只存不可逆哈希，忘记只能凭付款记录联系售后重置。</p>
+            <button class="button button-primary cta" type="submit" id="create-order">生成支付码</button>
+          </form>
+        </div>
+
+        <!-- 2 · 付款 -->
+        <div class="stage" data-stage="pay" hidden>
+          <div class="pay-head">
+            <div>
+              <p class="eyebrow" id="pay-channel">支付宝收款</p>
+              <p class="amount" id="pay-amount">￥0.00</p>
+            </div>
+            <div class="countdown">
+              <span class="clock" id="timer-clock">02:00</span>
+              <span class="timer-state" id="timer-state">等待支付</span>
+            </div>
+          </div>
+          <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+          <p class="mustpay" id="mustpay">务必按此金额付款，否则无法自动到账</p>
+
+          <div class="plate" id="qr-plate">
+            <img id="qr-image" alt="收款二维码" />
+            <p class="plate-fallback" id="qr-fallback" hidden>收款码加载失败，请刷新页面</p>
+          </div>
+          <p class="hint center">扫码后在收款页输入上面的金额；到账后自动核验发放，无需提交付款截图。</p>
+
+          <button class="button button-quiet cta" type="button" id="restart">重新选择套餐</button>
+        </div>
+
+        <!-- 3 · 出码 -->
+        <div class="stage" data-stage="done" hidden>
+          <p class="eyebrow">DELIVERED</p>
+          <h2>支付已确认，激活码已发放</h2>
+          <div class="code-item" id="delivery-code">--------</div>
+          <button class="button button-primary cta" type="button" id="copy-code">复制激活码</button>
+          <p class="hint center">在客户端授权窗口粘贴即可。换设备时到<a href="./query.html">查订单</a>凭联系方式与查询密码取回。</p>
+        </div>
+
+        <!-- 4 · 过期 -->
+        <div class="stage" data-stage="expired" hidden>
+          <p class="eyebrow">EXPIRED</p>
+          <h2>这笔订单超时了</h2>
+          <p class="hint">还没付款的话，重新生成即可。若已经付款，请凭付款记录联系官方客服人工补发。</p>
+          <button class="button button-primary cta" type="button" id="retry">重新生成支付码</button>
+        </div>
+      </section>
+
+      <p class="footnote">激活码按设备绑定，一张码绑一台设备。</p>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./pay.js" defer></script>
+  </body>
+</html>

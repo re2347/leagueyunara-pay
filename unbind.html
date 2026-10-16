@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="description" content="LeagueYunara 激活码自助解绑：换电脑前释放旧设备绑定，每天一次，北京时间 00:00 重置。" />
+    <meta name="robots" content="index,follow" />
+    <title>自助解绑 · LeagueYunara</title>
+    <link rel="icon" href="./assets/mark.png" type="image/png" />
+    <link rel="preconnect" href="https://kzqgphxrghdclkwneqyn.supabase.co" crossorigin />
+    <link rel="stylesheet" href="./pay.css" />
+    <link rel="stylesheet" href="./unbind.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./">LeagueYunara</a>
+      <nav class="topbar-actions">
+        <a class="button button-quiet" href="./query.html">查订单</a>
+        <a class="button button-quiet" href="https://shop.re2347.ccwu.cc/">官网</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <div class="intro-row">
+        <div>
+          <p class="eyebrow">DEVICE RELEASE</p>
+          <h1>换电脑前先解绑卡密</h1>
+          <p class="intro-copy">激活码默认绑定一台设备。解绑后旧设备会在下一次校验时退出，新电脑直接输入激活码即可激活。</p>
+        </div>
+        <span class="connection-state" id="service-state">服务自检中</span>
+      </div>
+
+      <ol class="steps" aria-label="解绑流程">
+        <li data-step="1"><b>填激活码</b><span>客户端「授权」窗口或购买记录里</span></li>
+        <li data-step="2"><b>确认解绑</b><span>这一步会立刻让旧设备掉线</span></li>
+        <li data-step="3"><b>新设备激活</b><span>用同一张码，无需重新购买</span></li>
+      </ol>
+
+      <section class="panel" aria-labelledby="unbind-title">
+        <h2 class="sr-only" id="unbind-title">自助解绑</h2>
+        <form class="form" id="unbind-form" novalidate>
+          <div class="field">
+            <label for="license-code">激活码</label>
+            <input
+              id="license-code"
+              name="license-code"
+              type="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              maxlength="64"
+              placeholder="形如 XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+              aria-describedby="code-error code-hint"
+              required
+            />
+            <p class="hint is-error" id="code-error" hidden></p>
+            <p class="hint" id="code-hint">大小写和短横线都可以省略，服务端按原样识别。</p>
+          </div>
+
+          <p class="warn-box">
+            每张激活码<b>每天只能自助解绑一次</b>，北京时间凌晨 00:00 重置。
+            解绑本身不退款、不延长授权时间，也不会把剩余天数转给另一张码。
+          </p>
+
+          <label class="confirm" for="unbind-confirm">
+            <input type="checkbox" id="unbind-confirm" name="unbind-confirm" />
+            <span>我知道旧电脑上的软件会立刻失效，确认释放这台设备。</span>
+          </label>
+
+          <button class="button button-primary cta" id="unbind-submit" type="submit" disabled>解绑旧设备</button>
+        </form>
+      </section>
+
+      <section class="panel result-panel" id="result-panel" hidden aria-live="polite" aria-atomic="true"></section>
+
+      <p class="footnote">
+        激活码忘了、已过期或被撤销，走不了这个页面？加 Q 群 <b>712178830</b> 或微信 <b>Re2347</b> 找群管人工处理，需要提供这张码的所有权说明。
+      </p>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./unbind.js" defer></script>
+  </body>
+</html>

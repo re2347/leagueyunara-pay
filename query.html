@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="description" content="凭联系方式或订单号查询 LeagueYunara 授权订单，并输入查询密码查看激活码。" />
+    <title>查订单 · LeagueYunara</title>
+    <link rel="icon" href="./assets/mark.png" type="image/png" />
+    <link rel="preconnect" href="https://kzqgphxrghdclkwneqyn.supabase.co" crossorigin />
+    <link rel="stylesheet" href="./pay.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./">LeagueYunara</a>
+      <nav class="topbar-actions">
+        <a class="button button-quiet" href="./">返回购买</a>
+        <a class="button button-quiet" href="./unbind.html">解绑</a>
+        <a class="button button-quiet" href="https://shop.re2347.ccwu.cc/">官网</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <div class="intro-row">
+        <div>
+          <p class="eyebrow">ORDERS</p>
+          <h1>查订单</h1>
+          <p class="intro-copy">凭下单时留的联系方式列出你的全部订单，查看激活码还需要查询密码。</p>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="stage">
+          <form id="query-form" class="querybar" novalidate>
+            <label class="sr-only" for="query-input">联系方式或订单号</label>
+            <input id="query-input" type="text" autocomplete="off" maxlength="200" placeholder="邮箱 / 手机号 / 订单号" required />
+            <button class="button button-primary" type="submit">查询</button>
+          </form>
+          <p class="hint">密码只存不可逆哈希；连续输错会临时锁定，此时请联系官方客服重置。</p>
+          <div id="results" class="results"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./query.js" defer></script>
+  </body>
+</html>
