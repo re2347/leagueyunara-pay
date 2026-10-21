@@ -5,46 +5,142 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com https://pay-api.re2347.ccwu.cc https://kzqgphxrghdclkwneqyn.supabase.co https://license.re2347.ccwu.cc; base-uri 'none'; form-action 'self'; object-src 'none'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f5f7" />
-    <meta name="description" content="凭联系方式或订单号查询 LeagueYunara 授权订单，并输入查询密码查看激活码。" />
-    <title>查订单 · LeagueYunara</title>
+    <meta name="theme-color" content="#f5f6f7" />
+    <meta name="description" content="凭下单时留的联系方式或订单号查询 LeagueYunara 授权订单，再输入查询密码查看激活码。" />
+    <title>查询订单 · LeagueYunara</title>
     <link rel="icon" href="./assets/mark.png" type="image/png" />
+    <script src="./theme.js"></script>
     <link rel="preconnect" href="https://kzqgphxrghdclkwneqyn.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com" crossorigin />
     <link rel="stylesheet" href="./pay.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="./">LeagueYunara</a>
-      <nav class="topbar-actions">
-        <a class="button button-quiet" href="./">返回购买</a>
-        <a class="button button-quiet" href="./unbind.html">解绑</a>
-        <a class="button button-quiet" href="https://re2347.github.io/leagueyunara-shop/">官网</a>
-      </nav>
-    </header>
+    <a class="skip-link" href="#main">跳到主要内容</a>
 
-    <main class="shell">
-      <div class="intro-row">
-        <div>
-          <p class="eyebrow">ORDERS</p>
-          <h1>查订单</h1>
-          <p class="intro-copy">凭下单时留的联系方式列出你的全部订单，查看激活码还需要查询密码。</p>
+    <div class="app-shell">
+      <aside class="sider" id="sidebar">
+        <span class="sider__brand">
+          <span class="brand-mark" aria-hidden="true"><img src="./assets/mark.png" alt="" /></span>
+          <span class="brand-text">
+            <strong>LeagueYunara</strong>
+            <small>授权中心</small>
+          </span>
+        </span>
+
+        <nav class="sider__menu" aria-label="买家功能">
+          <span class="menu-cursor" aria-hidden="true"></span>
+          <a class="menu-item" href="./"><span class="menu-item__icon" aria-hidden="true">￥</span><span class="menu-item__text">购买授权</span></a>
+          <a class="menu-item is-active" href="./query.html" aria-current="page"><span class="menu-item__icon" aria-hidden="true">⇄</span><span class="menu-item__text">查询订单</span></a>
+          <a class="menu-item" href="./unbind.html"><span class="menu-item__icon" aria-hidden="true">◈</span><span class="menu-item__text">自助解绑</span></a>
+        </nav>
+
+        <div class="sider__foot">
+          <button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false">
+            <span class="theme-toggle__glyph" aria-hidden="true">☾</span>
+            <span class="theme-toggle__text">深色模式</span>
+            <span class="theme-toggle__knob" aria-hidden="true"></span>
+          </button>
+          <button class="sider__collapse" id="sider-collapse" type="button">
+            <span class="sider__collapse-icon" aria-hidden="true">«</span>
+            <span>收起</span>
+          </button>
         </div>
+      </aside>
+
+      <div class="layout">
+        <header class="page-head">
+          <button class="icon-button" id="nav-toggle" type="button" aria-label="打开功能菜单" aria-expanded="false">☰</button>
+          <div class="page-head__text">
+            <p class="crumb">LeagueYunara · <strong>查询订单</strong></p>
+            <h1>查询订单</h1>
+            <p class="page-desc">凭下单时的联系方式列出全部订单，查看激活码还要那笔订单的查询密码。</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="button button-quiet" href="https://re2347.github.io/leagueyunara-shop/" target="_blank" rel="noopener noreferrer">↗ 官网</a>
+          </div>
+        </header>
+
+        <main class="page-body" id="main">
+          <div class="page-grid">
+            <div class="stack">
+              <section class="card" aria-labelledby="search-title">
+                <div class="card__head">
+                  <div>
+                    <h2 id="search-title">凭联系方式查询</h2>
+                    <p class="card__desc">填下单时留的邮箱或手机号，会列出它名下的全部订单；也可以直接填订单号，但那样只能看到那一单。</p>
+                  </div>
+                  <span class="tag">无需登录</span>
+                </div>
+                <form class="search-form" id="query-form" novalidate>
+                  <label class="field" for="query-input">
+                    <span>联系方式 <em>或订单号</em></span>
+                    <input id="query-input" type="text" autocomplete="off" maxlength="200" placeholder="邮箱 / 11 位手机号 / 订单号" required />
+                  </label>
+                  <button class="button button-primary" type="submit">查询</button>
+                </form>
+                <p class="hint hint-spaced">密码只存不可逆哈希；连续输错会按订单临时锁定，此时请联系官方客服重置。</p>
+              </section>
+
+              <section class="card" aria-labelledby="results-title">
+                <div class="card__head">
+                  <div>
+                    <h2 id="results-title">订单列表</h2>
+                    <p class="card__desc">每张订单要单独输入查询密码才会显示激活码，查看动作会写入审计记录。</p>
+                  </div>
+                </div>
+                <div id="results" class="results" aria-live="polite"></div>
+              </section>
+            </div>
+
+            <aside class="rail">
+              <section class="card" aria-labelledby="how-title">
+                <div class="card__head">
+                  <div>
+                    <p class="section-kicker">HOW IT WORKS</p>
+                    <h2 id="how-title">三步取回激活码</h2>
+                  </div>
+                </div>
+                <ol class="next-steps">
+                  <li><span>01</span><span>填<b>下单时留的</b>邮箱或手机号，或直接填订单号。</span></li>
+                  <li><span>02</span><span>在列表里找到对应的那一笔，核对<b>金额与时间</b>。</span></li>
+                  <li><span>03</span><span>输入那笔订单的<b>查询密码</b>才显示激活码。</span></li>
+                </ol>
+                <p class="card__foot">订单号在付款页与付款备注里都能看到。</p>
+              </section>
+
+              <section class="card" aria-labelledby="faq-title">
+                <div class="card__head"><h2 id="faq-title">常见问题</h2></div>
+                <div class="faq" data-faq>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">密码忘了怎么办？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>密码不可逆保存，页面无法重置。带上付款记录联系群管，核对该笔订单的金额与时间后人工重置。</div></div>
+                  </div>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">为什么显示已锁定？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>同一笔订单短时间内输错多次密码会触发锁定，避免被逐个试探。等锁定过去后重试，或联系售后按订单解锁。</div></div>
+                  </div>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">查到了但显示没发码？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>「待支付 / 核验中」的订单还没有激活码。若已付满金额仍是这样，带订单号找群管补发。</div></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card help-card" aria-labelledby="help-title">
+                <div class="card__head"><h2 id="help-title">人工售后</h2></div>
+                <div class="help-row"><span>QQ 群</span><b>712178830</b></div>
+                <div class="help-row"><span>微信</span><b>Re2347</b></div>
+                <p class="card__foot">人工处理请直接发订单号，比截图更快定位。</p>
+              </section>
+            </aside>
+          </div>
+        </main>
       </div>
+    </div>
 
-      <section class="panel">
-        <div class="stage">
-          <form id="query-form" class="querybar" novalidate>
-            <label class="sr-only" for="query-input">联系方式或订单号</label>
-            <input id="query-input" type="text" autocomplete="off" maxlength="200" placeholder="邮箱 / 手机号 / 订单号" required />
-            <button class="button button-primary" type="submit">查询</button>
-          </form>
-          <p class="hint">密码只存不可逆哈希；连续输错会临时锁定，此时请联系官方客服重置。</p>
-          <div id="results" class="results"></div>
-        </div>
-      </section>
-    </main>
-
+    <div class="scrim" id="scrim"></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./shell.js" defer></script>
     <script src="./query.js" defer></script>
   </body>
 </html>

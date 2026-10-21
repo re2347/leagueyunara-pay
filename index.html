@@ -5,10 +5,13 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com https://pay-api.re2347.ccwu.cc https://kzqgphxrghdclkwneqyn.supabase.co https://license.re2347.ccwu.cc; base-uri 'none'; form-action 'self'; object-src 'none'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="theme-color" content="#f5f6f7" />
     <meta name="description" content="LeagueYunara 密钥版授权购买：支付宝或微信扫码，到账自动发码，凭联系方式与查询密码随时找回。" />
     <title>购买授权 · LeagueYunara</title>
     <link rel="icon" href="./assets/mark.png" type="image/png" />
+    <!-- 主题与侧栏折叠必须在首次绘制前落到 <html> 上，否则会先闪一下白、再闪一下展开态。
+         页面 CSP 是 script-src 'self'，所以这段只能是独立文件，不能内联。 -->
+    <script src="./theme.js"></script>
     <!-- 库存查询在 pay.js 初始化时就要打支付接口；提前握手，省掉那次 DNS+TCP+TLS 排队。
          三条都留着：SCF 香港是主通道，Supabase 是第二通道，CF Worker 是最后兜底。 -->
     <link rel="preconnect" href="https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com" crossorigin />
@@ -17,113 +20,249 @@
     <link rel="stylesheet" href="./pay.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="./">LeagueYunara</a>
-      <nav class="topbar-actions">
-        <a class="button button-quiet" href="./query.html">查订单</a>
-        <a class="button button-quiet" href="./unbind.html">解绑</a>
-        <a class="button button-quiet" href="https://re2347.github.io/leagueyunara-shop/">官网</a>
-      </nav>
-    </header>
+    <a class="skip-link" href="#main">跳到主要内容</a>
 
-    <main class="shell">
-      <div class="intro-row">
-        <div>
-          <p class="eyebrow">PAYMENT</p>
-          <h1>购买授权</h1>
-          <p class="contact-line">软件获取方式：加 Q 群 <b>712178830</b> 或添加微信 <b>Re2347</b></p>
-          <p class="contact-line">安装包下载：<a href="https://wwboj.lanzouc.com/b01euq54ah" target="_blank" rel="noopener noreferrer">蓝奏云</a> 提取码 <b>c1le</b></p>
-          <p class="intro-copy">选时长并留下取货凭证，生成订单后按精确金额扫码付款。</p>
+    <div class="app-shell">
+      <aside class="sider" id="sidebar">
+        <span class="sider__brand">
+          <span class="brand-mark" aria-hidden="true"><img src="./assets/mark.png" alt="" /></span>
+          <span class="brand-text">
+            <strong>LeagueYunara</strong>
+            <small>授权中心</small>
+          </span>
+        </span>
+
+        <nav class="sider__menu" aria-label="买家功能">
+          <span class="menu-cursor" aria-hidden="true"></span>
+          <a class="menu-item is-active" href="./" aria-current="page"><span class="menu-item__icon" aria-hidden="true">￥</span><span class="menu-item__text">购买授权</span></a>
+          <a class="menu-item" href="./query.html"><span class="menu-item__icon" aria-hidden="true">⇄</span><span class="menu-item__text">查询订单</span></a>
+          <a class="menu-item" href="./unbind.html"><span class="menu-item__icon" aria-hidden="true">◈</span><span class="menu-item__text">自助解绑</span></a>
+        </nav>
+
+        <div class="sider__foot">
+          <button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false">
+            <span class="theme-toggle__glyph" aria-hidden="true">☾</span>
+            <span class="theme-toggle__text">深色模式</span>
+            <span class="theme-toggle__knob" aria-hidden="true"></span>
+          </button>
+          <button class="sider__collapse" id="sider-collapse" type="button">
+            <span class="sider__collapse-icon" aria-hidden="true">«</span>
+            <span>收起</span>
+          </button>
         </div>
-        <span class="connection-state" id="service-state">服务自检中</span>
+      </aside>
+
+      <div class="layout">
+        <header class="page-head">
+          <button class="icon-button" id="nav-toggle" type="button" aria-label="打开功能菜单" aria-expanded="false">☰</button>
+          <div class="page-head__text">
+            <p class="crumb">LeagueYunara · <strong>购买授权</strong></p>
+            <h1>购买授权</h1>
+            <p class="page-desc">选时长、留取货凭证，扫码付款后自动发码。</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="button button-quiet" href="https://re2347.github.io/leagueyunara-shop/" target="_blank" rel="noopener noreferrer">↗ 官网</a>
+            <span class="connection-state" id="service-state">服务自检中</span>
+          </div>
+        </header>
+
+        <main class="page-body" id="main">
+          <div class="page-grid">
+            <div class="stack">
+              <section class="card intro-card" aria-labelledby="intro-title">
+                <div class="intro-head">
+                  <div>
+                    <p class="eyebrow">PAYMENT</p>
+                    <h2 class="intro-title" id="intro-title">一张码绑一台设备，付款后立即出码</h2>
+                    <p class="intro-copy">密钥版授权按天计费，不绑账号、不绑手机。付款金额带一枚随机尾数，到账后系统自动核验并当场发码，全程无需人工确认。</p>
+                    <p class="contact-line">软件获取方式：加 Q 群 <b>712178830</b> 或添加微信 <b>Re2347</b></p>
+                    <p class="contact-line">安装包下载：<a href="https://wwboj.lanzouc.com/b01euq54ah" target="_blank" rel="noopener noreferrer">蓝奏云</a> 提取码 <b>c1le</b></p>
+                  </div>
+                </div>
+                <div class="flow" aria-label="购买流程">
+                  <div class="flow__step"><span class="flow__n">1</span><span class="flow__text"><b>选时长</b>1 / 7 / 30 天</span></div>
+                  <div class="flow__step"><span class="flow__n">2</span><span class="flow__text"><b>扫码付款</b>金额需精确到分</span></div>
+                  <div class="flow__step"><span class="flow__n">3</span><span class="flow__text"><b>自动发码</b>到账后当场出码</span></div>
+                </div>
+              </section>
+
+              <section class="card" id="order-card" aria-labelledby="order-title">
+                <!-- 1 · 选择与登记 -->
+                <div class="stage" data-stage="setup">
+                  <div class="card__head">
+                    <div>
+                      <h2 id="order-title">订单配置</h2>
+                      <p class="card__desc">价目由管理台实时下发；生成订单后套餐与支付方式会被锁定，避免按新选的套餐付了旧订单的金额。</p>
+                    </div>
+                    <span class="tag tag-teal">实时价目</span>
+                  </div>
+
+                  <div class="form-block">
+                    <div class="block-label">
+                      <span>授权时长</span>
+                      <em class="stock" id="stock" data-level="ok" hidden>库存充足</em>
+                    </div>
+                    <div class="seg" role="radiogroup" aria-label="授权时长" data-seg="plan">
+                      <span class="seg__cursor" aria-hidden="true"></span>
+                      <button class="seg__item" type="button" role="radio" aria-checked="false" data-plan="1"><b>1 天</b><i>—</i></button>
+                      <button class="seg__item" type="button" role="radio" aria-checked="true" data-plan="7"><b>7 天</b><i>—</i></button>
+                      <button class="seg__item" type="button" role="radio" aria-checked="false" data-plan="30"><b>30 天</b><i>—</i></button>
+                    </div>
+                  </div>
+
+                  <div class="form-block">
+                    <div class="block-label"><span>支付方式</span></div>
+                    <div class="seg seg--method" role="radiogroup" aria-label="支付方式" data-seg="method">
+                      <span class="seg__cursor" aria-hidden="true"></span>
+                      <button class="seg__item method" type="button" role="radio" aria-checked="true" data-method="alipay"><span class="method__mark alipay" aria-hidden="true">支</span><span class="method__text"><b>支付宝</b><small>扫码即付</small></span></button>
+                      <button class="seg__item method" type="button" role="radio" aria-checked="false" data-method="wechat"><span class="method__mark wechat" aria-hidden="true">微</span><span class="method__text"><b>微信支付</b><small>扫码即付</small></span></button>
+                    </div>
+                  </div>
+
+                  <div class="form-block">
+                    <div class="block-label"><span>取货凭证</span><em class="hint">丢了只能凭它找回</em></div>
+                    <form class="voucher" id="order-form" novalidate>
+                      <label class="field">
+                        <span>联系方式</span>
+                        <input id="contact" type="text" autocomplete="email" inputmode="email" maxlength="200" placeholder="邮箱或 11 位手机号，用于找回订单" required />
+                      </label>
+                      <div class="field-row">
+                        <label class="field">
+                          <span>查询密码</span>
+                          <input id="password" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="4–64 位" required />
+                        </label>
+                        <label class="field">
+                          <span>确认密码</span>
+                          <input id="password2" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="再输入一次" required />
+                        </label>
+                      </div>
+                      <p class="hint" id="form-hint">密码只存不可逆哈希，忘记只能凭付款记录联系售后重置。</p>
+                      <button class="button button-primary button-lg button-block" type="submit" id="create-order">生成支付码</button>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- 2 · 付款 -->
+                <div class="stage" data-stage="pay" hidden>
+                  <div class="pay-head">
+                    <div>
+                      <p class="eyebrow" id="pay-channel">支付宝收款</p>
+                      <!-- pay.js 把「￥20.13」整串写进这个元素，所以 ￥ 由 JS 带，标记里不再另写一份。 -->
+                      <p class="amount" id="pay-amount">￥0.00</p>
+                      <p class="amount-note">请在倒计时内完成支付，超时后这笔订单的尾数会回收给别人。</p>
+                    </div>
+                    <div class="countdown" data-expired="false">
+                      <span class="clock" id="timer-clock">02:00</span>
+                      <span class="countdown__label" id="timer-state">等待支付</span>
+                    </div>
+                  </div>
+                  <!-- 进度条由 pay.js 写 --left 驱动（scaleX），不另加 JS 也不写 style 属性。 -->
+                  <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+
+                  <div class="callout pay-callout">
+                    <span class="callout__icon" aria-hidden="true">!</span>
+                    <p class="callout__body" id="mustpay">务必按此金额付款，否则无法自动到账</p>
+                  </div>
+
+                  <div class="pay-grid pay-grid--spaced">
+                    <div class="qr-plate" id="qr-plate">
+                      <img id="qr-image" alt="收款二维码" />
+                      <p class="qr-plate__fallback" id="qr-fallback" hidden>收款码加载失败，请刷新页面</p>
+                      <p class="qr-caption"><span aria-hidden="true">◧</span> 扫码后在收款页输入 <b>精确金额</b></p>
+                    </div>
+                    <div class="pay-side">
+                      <button class="button button-quiet button-block" type="button" id="copy-amount">复制金额</button>
+                      <button class="button button-quiet button-block" type="button" id="restart">重新选择套餐</button>
+                      <p class="hint">扫码后在收款页输入上面的金额；到账后自动核验发放，无需提交付款截图。若长时间没有出码，凭付款记录联系售后。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3 · 出码 -->
+                <div class="stage" data-stage="done" hidden>
+                  <div class="done-head">
+                    <span class="done-check" aria-hidden="true">✓</span>
+                    <p class="eyebrow">DELIVERED</p>
+                    <h2 class="done-title">支付已确认，激活码已发放</h2>
+                    <p class="done-copy">这张码已绑定到第一台激活它的设备。换电脑前请先到「自助解绑」释放旧设备，否则新机器会激活失败。</p>
+                  </div>
+                  <div class="code-plate">
+                    <span class="code-plate__value" id="delivery-code">--------</span>
+                    <button class="button button-quiet" type="button" id="copy-code">复制激活码</button>
+                  </div>
+                  <ol class="next-steps">
+                    <li><span>01</span><span>打开客户端授权窗口，把激活码粘进去，点<b>激活</b>。</span></li>
+                    <li><span>02</span><span>这台设备会成为<b>唯一</b>绑定设备；同一天内换机需要走自助解绑。</span></li>
+                    <li><span>03</span><span>凭证（联系方式 + 查询密码）可随时在<b>查询订单</b>里取回这张码。</span></li>
+                  </ol>
+                  <div class="result-actions">
+                    <a class="button button-primary" href="./query.html">去查询订单</a>
+                    <a class="button button-quiet" href="./unbind.html">自助解绑</a>
+                  </div>
+                </div>
+
+                <!-- 4 · 过期 -->
+                <div class="stage" data-stage="expired" hidden>
+                  <div class="done-head">
+                    <span class="done-check done-check--warn" aria-hidden="true">⌛</span>
+                    <p class="eyebrow">EXPIRED</p>
+                    <h2 class="done-title">这笔订单超时了</h2>
+                    <p class="done-copy">尾数池里的金额会在两分钟后回收给别人，所以这笔订单不能再付。还没付款的话重新生成即可；若已经付款，请凭付款记录联系官方客服人工补发。</p>
+                  </div>
+                  <div class="result-actions">
+                    <button class="button button-primary" type="button" id="retry">重新生成支付码</button>
+                    <a class="button button-quiet" href="./query.html">先查订单</a>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="rail">
+              <section class="card" aria-labelledby="rules-title">
+                <div class="card__head"><h2 id="rules-title">购买须知</h2></div>
+                <ul class="trust-list">
+                  <li><i aria-hidden="true">✓</i><span><b>一码一设备</b>：激活即绑定，换机前先解绑。</span></li>
+                  <li><i aria-hidden="true">✓</i><span><b>自动发码</b>：到账后当场出码，7×24 无人工。</span></li>
+                  <li><i aria-hidden="true">✓</i><span><b>可找回</b>：凭联系方式 + 查询密码随时取回。</span></li>
+                  <li><i aria-hidden="true">✓</i><span><b>售出不退</b>：授权为虚拟商品，过期不补。</span></li>
+                </ul>
+              </section>
+
+              <section class="card" aria-labelledby="faq-title">
+                <div class="card__head"><h2 id="faq-title">常见问题</h2></div>
+                <div class="faq" data-faq>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">为什么金额不是整数？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>每位买家会分到一枚不同的分位尾数，系统按「金额 + 时间窗」匹配到账记录。付整数会让系统无法判断这笔钱属于哪张订单。</div></div>
+                  </div>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">付款后一直没出码？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>先确认实付金额与页面完全一致。一致却没出码，带上付款截图与订单号找群管，能按订单号直接补发。</div></div>
+                  </div>
+                  <div class="faq__item">
+                    <button class="faq__q" type="button" aria-expanded="false">激活码能换设备吗？<span class="faq__sign" aria-hidden="true">＋</span></button>
+                    <div class="faq__a"><div>可以，但每天只有一次自助解绑额度（北京时间 00:00 重置）。解绑后旧设备下次校验时退出，新设备用同一张码激活。</div></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card help-card" aria-labelledby="help-title">
+                <div class="card__head"><h2 id="help-title">人工售后</h2></div>
+                <div class="help-row"><span>QQ 群</span><b>712178830</b></div>
+                <div class="help-row"><span>微信</span><b>Re2347</b></div>
+                <p class="card__foot">处理请直接发订单号，比截图更快定位。</p>
+              </section>
+            </aside>
+          </div>
+
+          <p class="footnote">激活码按设备绑定，一张码绑一台设备。</p>
+        </main>
       </div>
+    </div>
 
-      <section class="panel" id="island" aria-live="polite">
-        <!-- 1 · 选择与登记 -->
-        <div class="stage" data-stage="setup">
-          <div class="field">
-            <span class="field-caption">授权时长<em class="stock" id="stock" data-level="ok" hidden>库存充足</em></span>
-            <div class="option-row" role="radiogroup" aria-label="授权时长">
-              <button class="option" type="button" role="radio" aria-checked="false" data-plan="1"><b>1 天</b><i>—</i></button>
-              <button class="option" type="button" role="radio" aria-checked="true" data-plan="7"><b>7 天</b><i>—</i></button>
-              <button class="option" type="button" role="radio" aria-checked="false" data-plan="30"><b>30 天</b><i>—</i></button>
-            </div>
-          </div>
-
-          <div class="field">
-            <span class="field-caption">支付方式</span>
-            <div class="option-row two" role="radiogroup" aria-label="支付方式">
-              <button class="option" type="button" role="radio" aria-checked="true" data-method="alipay"><span class="chip alipay">支</span>支付宝</button>
-              <button class="option" type="button" role="radio" aria-checked="false" data-method="wechat"><span class="chip wechat">微</span>微信支付</button>
-            </div>
-          </div>
-
-          <form id="order-form" class="form" novalidate>
-            <label class="field">
-              <span>联系方式</span>
-              <input id="contact" type="text" autocomplete="email" inputmode="email" maxlength="200" placeholder="邮箱或 11 位手机号，用于找回订单" required />
-            </label>
-            <div class="field-pair">
-              <label class="field">
-                <span>查询密码</span>
-                <input id="password" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="4–64 位" required />
-              </label>
-              <label class="field">
-                <span>确认密码</span>
-                <input id="password2" type="password" autocomplete="new-password" minlength="4" maxlength="64" placeholder="再输入一次" required />
-              </label>
-            </div>
-            <p class="hint" id="form-hint">密码只存不可逆哈希，忘记只能凭付款记录联系售后重置。</p>
-            <button class="button button-primary cta" type="submit" id="create-order">生成支付码</button>
-          </form>
-        </div>
-
-        <!-- 2 · 付款 -->
-        <div class="stage" data-stage="pay" hidden>
-          <div class="pay-head">
-            <div>
-              <p class="eyebrow" id="pay-channel">支付宝收款</p>
-              <p class="amount" id="pay-amount">￥0.00</p>
-            </div>
-            <div class="countdown">
-              <span class="clock" id="timer-clock">02:00</span>
-              <span class="timer-state" id="timer-state">等待支付</span>
-            </div>
-          </div>
-          <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
-          <p class="mustpay" id="mustpay">务必按此金额付款，否则无法自动到账</p>
-
-          <div class="plate" id="qr-plate">
-            <img id="qr-image" alt="收款二维码" />
-            <p class="plate-fallback" id="qr-fallback" hidden>收款码加载失败，请刷新页面</p>
-          </div>
-          <p class="hint center">扫码后在收款页输入上面的金额；到账后自动核验发放，无需提交付款截图。</p>
-
-          <button class="button button-quiet cta" type="button" id="restart">重新选择套餐</button>
-        </div>
-
-        <!-- 3 · 出码 -->
-        <div class="stage" data-stage="done" hidden>
-          <p class="eyebrow">DELIVERED</p>
-          <h2>支付已确认，激活码已发放</h2>
-          <div class="code-item" id="delivery-code">--------</div>
-          <button class="button button-primary cta" type="button" id="copy-code">复制激活码</button>
-          <p class="hint center">在客户端授权窗口粘贴即可。换设备时到<a href="./query.html">查订单</a>凭联系方式与查询密码取回。</p>
-        </div>
-
-        <!-- 4 · 过期 -->
-        <div class="stage" data-stage="expired" hidden>
-          <p class="eyebrow">EXPIRED</p>
-          <h2>这笔订单超时了</h2>
-          <p class="hint">还没付款的话，重新生成即可。若已经付款，请凭付款记录联系官方客服人工补发。</p>
-          <button class="button button-primary cta" type="button" id="retry">重新生成支付码</button>
-        </div>
-      </section>
-
-      <p class="footnote">激活码按设备绑定，一张码绑一台设备。</p>
-    </main>
-
+    <div class="scrim" id="scrim"></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./shell.js" defer></script>
     <script src="./pay.js" defer></script>
   </body>
 </html>
