@@ -1,6 +1,50 @@
 const QUERY_CONFIG = {
-  api: "https://kzqgphxrghdclkwneqyn.supabase.co/functions/v1/auth",
+  // 与购买视图同一套加速优先级：SCF 香港是主通道（唯一同时覆盖 /v1/orders/* 与授权的节点），
+  // Supabase 直连第二，CF Worker 兜底。查单没有写操作，多一次 failover 只是慢，不会重复扣款。
+  endpoints: [
+    "https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com",
+    "https://kzqgphxrghdclkwneqyn.supabase.co/functions/v1/auth",
+    "https://pay-api.re2347.ccwu.cc",
+  ],
 };
+
+/** 单个端点的请求上限，与 pay.js 对齐：查单页等 8 秒已经是极限。 */
+const REQUEST_TIMEOUT_MS = 5000;
+
+/** 记住上次成功的端点下标，后续请求优先复用它，不必每次都从主通道重探。 */
+let activeEndpoint = 0;
+
+/**
+ * 端点故障转移。判据与 pay.js 的 request() 完全一致：只在「网络层失败」和「5xx」时换下一条；
+ * 4xx 带着结构化 error.code 的是业务结论（密码错、订单不存在），换线路只会把同一个答案再问一遍，
+ * 白花一次跨境请求。这里刻意不 import pay.js —— query.js 既作为 module 进合并页，
+ * 也作为 classic 脚本进转发页 query.html，加 import 会让后者直接报错。
+ */
+async function request(path, init) {
+  const endpoints = QUERY_CONFIG.endpoints;
+  let lastError = null;
+  let networkError = null;
+  for (let attempt = 0; attempt < endpoints.length; attempt += 1) {
+    const index = (activeEndpoint + attempt) % endpoints.length;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(endpoints[index] + path, { ...init, signal: controller.signal, cache: "no-store" });
+      clearTimeout(timer);
+      if (response.status >= 500 && attempt < endpoints.length - 1) {
+        lastError = new Error("查询服务暂不可用");
+        continue;
+      }
+      activeEndpoint = index;
+      return response;
+    } catch (error) {
+      clearTimeout(timer);
+      if (!networkError) networkError = error;
+      lastError = error;
+    }
+  }
+  throw networkError || lastError || new Error("查询服务暂不可用");
+}
 
 const statusLabels = { pending: "待支付", processing: "核验支付中", paid: "已支付", delivered: "已领取", expired: "已过期" };
 const state = { orders: [], revealed: new Map(), credential: "" };
@@ -42,7 +86,7 @@ async function queryOrders() {
   state.revealed.clear();
   results.innerHTML = '<p class="empty">正在查询…</p>';
   try {
-    const response = await fetch(`${QUERY_CONFIG.api}/v1/orders/query`, {
+    const response = await request("/v1/orders/query", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ credential }),
@@ -94,7 +138,7 @@ function render(matchedBy) {
 
 async function revealOrder(orderId, password) {
   try {
-    const response = await fetch(`${QUERY_CONFIG.api}/v1/orders/reveal`, {
+    const response = await request("/v1/orders/reveal", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ orderId, queryPassword: password }),

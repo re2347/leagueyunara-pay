@@ -198,12 +198,137 @@
     });
   }
 
+  /* ------------------------------------------------------------ 视图路由（仅合并页生效）
+     .view 只存在于 index.html：三个业务脚本都是 module，执行早于 DOMContentLoaded，
+     所以这里合成 submit / click 时它们的监听器必然已经挂好。
+     深链格式与 pay.js 的跳转对齐：#query?contact=…、#pay?plan=30；
+     转发页（query.html / unbind.html）继续吃 ?contact=… 的查询串，两条路都通。 */
+  var ROUTES = {
+    pay: {
+      label: "购买授权",
+      title: "购买授权",
+      desc: "选时长、留取货凭证，扫码付款后自动发码。"
+    },
+    query: {
+      label: "查询订单",
+      title: "查询订单",
+      desc: "凭下单时的联系方式列出全部订单，查看激活码还要那笔订单的查询密码。"
+    },
+    unbind: {
+      label: "自助解绑",
+      title: "换电脑前先解绑卡密",
+      desc: "激活码默认绑定一台设备；解绑后旧设备下次校验即退出。"
+    }
+  };
+
+  var pageTitleFallback = document.title;
+
+  function parseHash(raw) {
+    var h = String(raw || "").replace(/^#/, "");
+    if (!h) return { view: "pay", params: null };
+    var cut = h.indexOf("?");
+    var view = cut < 0 ? h : h.slice(0, cut);
+    if (!ROUTES[view]) return { view: "", params: null };
+    return { view: view, params: new URLSearchParams(cut < 0 ? "" : h.slice(cut + 1)) };
+  }
+
+  function showCurrentView(name) {
+    var meta = ROUTES[name];
+    $$(".view").forEach(function (section) {
+      var on = section.getAttribute("data-view") === name;
+      section.hidden = !on;
+      if (on && !section.hasAttribute("tabindex")) section.tabIndex = -1;
+    });
+    $$(".sider__menu .menu-item").forEach(function (item) {
+      var on = item.getAttribute("data-view") === name;
+      item.classList.toggle("is-active", on);
+      if (on) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+    var crumb = $("#crumb-text");
+    if (crumb) crumb.textContent = meta.label;
+    var title = $("#view-title");
+    if (title) title.textContent = meta.title;
+    var desc = $("#view-desc");
+    if (desc) desc.textContent = meta.desc;
+    document.title = name === "pay" ? pageTitleFallback : meta.title + " · LeagueYunara";
+    window.scrollTo(0, 0);
+  }
+
+  function prefillQueryContact(params) {
+    var contact = params.get("contact");
+    if (!contact) return;
+    var input = $("#query-input");
+    var form = $("#query-form");
+    if (!input || !form) return;
+    input.value = contact;
+    // 让 query.js 自己那条 submit 链路去查，shell 不碰它的 state。
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  }
+
+  function prefillPayPlan(params) {
+    var wanted = params.get("plan");
+    if (!/^\d+$/.test(wanted || "")) return;
+    var item = $('.seg__item[data-plan="' + wanted + '"]');
+    if (!item || item.getAttribute("aria-checked") === "true") return;
+    // pay.js 在 init 尾部会把选中态复位成它自己读到的值；等它那轮跑完再点，
+    // 否则药丸会被复位动作盖掉。轮询到已选中就停，最坏 6 秒后放弃。
+    var deadline = Date.now() + 6000;
+    var timer = setInterval(function () {
+      if (item.getAttribute("aria-checked") === "true") { clearInterval(timer); return; }
+      if (Date.now() > deadline) { clearInterval(timer); return; }
+      item.click();
+    }, 150);
+  }
+
+  function applyRoute(raw) {
+    var parsed = parseHash(raw);
+    if (!parsed.view) {
+      // 认不出的 hash：把 URL 收回到 #pay，免得留下一个高亮和页头都对不上的状态。
+      try { history.replaceState(null, "", "#pay"); } catch (e) { /* file:// 下允许失败 */ }
+      parsed = parseHash("#pay");
+    }
+    showCurrentView(parsed.view);
+    syncMenuCursor();
+    requestAnimationFrame(function () { syncMenuCursor(); syncAllSegs(); });
+    setTimeout(function () { syncMenuCursor(); syncAllSegs(); }, 320);
+    if (parsed.params) {
+      // 旧入口 ?plan=… 由 pay.js 自己读（L439），?contact=… 由 query.js 模块顶层消费；
+      // 这里只处理 hash 携带的参数，两处逻辑不打架。
+      if (parsed.view === "query") prefillQueryContact(parsed.params);
+      if (parsed.view === "pay") prefillPayPlan(parsed.params);
+    }
+  }
+
+  function initRouting() {
+    if (!$$(".view").length) return; // 转发页没有 .view：路由完全不启用，行为与合并前一致。
+
+    window.addEventListener("hashchange", function () { applyRoute(window.location.hash); });
+
+    // 点「当前视图自己」的链接时 hash 不变、hashchange 不触发，浏览器却会把
+    // 那节 section 原生滚进视野——页头是 sticky 的，滚过去会盖住内容。拦下来。
+    document.addEventListener("click", function (event) {
+      var link = event.target && event.target.closest ? event.target.closest('a[href^="#"]') : null;
+      if (!link) return;
+      var raw = link.getAttribute("href") || "";
+      var view = raw.replace(/^#/, "").split("?")[0];
+      if (!ROUTES[view]) return;
+      if (view === parseHash(window.location.hash).view) {
+        event.preventDefault();
+        window.scrollTo(0, 0);
+      }
+    });
+
+    applyRoute(window.location.hash);
+  }
+
   function init() {
     initTheme();
     initSider();
     initSegs();
     initFaq();
     initCopyAmount();
+    initRouting();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

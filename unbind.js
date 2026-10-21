@@ -10,9 +10,13 @@
  *    textContent，不拼 innerHTML。
  */
 
-// 主备两条授权线路，两条都实现了同一个路由。买家页面上不出现供应商名字：这对他们是没有的
-// 信息，而「哪条线在处理」本来就该由服务端的请求号去查，不该由页面替排查的人下结论。
+// 三条授权线路，都实现了同一个解绑路由（2026-10-22 实测：SCF 香港对 /health 与
+// /v1/self-service/unbind 都通，且是唯一同时覆盖订单与授权两条业务线的节点）。
+// 顺序与购买视图一致：腾讯云香港反代是主通道（实测中位 ~300ms vs Supabase 直连 ~900ms），
+// Supabase 第二，CF license 兜底。买家页面上不出现供应商名字：这对他们是没有的信息，
+// 而「哪条线在处理」本来就该由服务端的请求号去查。
 const ENDPOINTS = [
+  "https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com",
   "https://kzqgphxrghdclkwneqyn.supabase.co/functions/v1/auth",
   "https://license.re2347.ccwu.cc",
 ];

@@ -216,6 +216,14 @@ html[data-sider="collapsed"] .sider__collapse-icon { transform: rotate(180deg); 
    滚到后面会互相压住并露出对方的描边。 */
 .rail { display: grid; gap: 16px; align-content: start; min-width: 0; }
 
+/* ------------------------------------------------------------------ 视图路由（单页控制台）
+   三个视图共用一个 .page-body，靠 hidden 切换。视图本身不加 gap 之外的结构，
+   内部仍是原来的 .page-grid 双栏。 */
+.view { min-width: 0; }
+/* 换视图时焦点交给这一页本身（读屏会念出新页名），但它不是可操作控件，
+   画一整圈焦点环反而像整页被框选了一遍。 */
+.view:focus, .view:focus-visible { outline: none; }
+
 /* ------------------------------------------------------------------ 卡片 */
 .card { padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
 .card__head { display: flex; align-items: start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 15px; }

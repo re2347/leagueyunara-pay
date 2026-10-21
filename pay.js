@@ -384,11 +384,13 @@ async function poll(generation) {
       return;
     }
     if (result.status === "delivered") {
-      // 领取令牌已被用过（多半是刷新页面后重复领取）：卡密改由查订单页凭联系方式取回。
+      // 领取令牌已被用过（多半是刷新页面后重复领取）：卡密改由查订单视图凭联系方式取回。
       clearTimers();
       forget();
       toast("本单领取链接已使用，请到查订单页取回");
-      window.location.href = `./query?contact=${encodeURIComponent(state.order.contact || "")}`;
+      // 三个视图现在同页（index.html 的 .view），改走 hash 让 shell 路由过去，
+      // 不再整页刷新——刷新会把已加载的价目与库存重新拉一遍，用户会看到一次闪白。
+      window.location.hash = `#query?contact=${encodeURIComponent(state.order.contact || "")}`;
       return;
     }
     if (result.status === "expired") { expire(); return; }
