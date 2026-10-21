@@ -1,6 +1,17 @@
 const PAY_CONFIG = {
-  // 授权主通道（Supabase Edge Function）。
-  api: "https://kzqgphxrghdclkwneqyn.supabase.co/functions/v1/auth",
+  // 顺序按实测延迟排，不是按"哪个更先进"排：
+  //   SCF 香港（腾讯云函数 URL）  中位 375ms  P90 648ms  ← 主通道
+  //   直连 Supabase              中位 956ms
+  //   CF 兜底 Worker             中位 1911ms
+  //
+  // SCF 那条是腾讯云香港的函数 URL，走境外节点，绕开大陆到 Cloudflare 段的握手问题；
+  // 直连 Supabase 保留为第二通道（SCF 有冷启动和免费额度，不能当唯一依赖）；
+  // pay-api 那条 CF Worker 是最后一条路，慢但能通。
+  endpoints: [
+    "https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com",
+    "https://kzqgphxrghdclkwneqyn.supabase.co/functions/v1/auth",
+    "https://pay-api.re2347.ccwu.cc",
+  ],
   qr: {
     alipay: "./assets/alipay-qr.png",
     wechat: "./assets/wechat-qr.png",
@@ -12,6 +23,21 @@ const PAY_CONFIG = {
 const STORAGE_KEY = "cskin.pay.order.v2";
 const POLL_MS = 5000;
 const TICK_MS = 1000;
+/** 单个端点的请求上限。买家在付款页上等 8 秒已经是极限，5 秒切端点更划算。 */
+const REQUEST_TIMEOUT_MS = 5000;
+
+/**
+ * 网络层失败（fetch 抛 TypeError / 超时被 abort）和业务失败必须分开：
+ * 前者跟买家填的内容毫无关系，说「请检查填写内容」只会让人反复改那个正确的手机号，
+ * 最后人走了，单也丢了。后者才值得让买家改输入。
+ */
+const isNetworkError = (error) =>
+  error instanceof TypeError || (error && error.name === "AbortError");
+
+const NETWORK_HINT_HTML =
+  "连不上支付服务。可以先换网络（WiFi ↔ 4G、关掉代理）后重试，"
+  + "或者直接下单：加 Q 群 <b>712178830</b> 或微信 <b>Re2347</b>，"
+  + "说明时长（1 / 7 / 30 天），客服发收款码，付款后立刻发码。";
 
 const $ = (selector) => document.querySelector(selector);
 const state = {
@@ -104,7 +130,7 @@ function setServiceState(ok) {
   const el = $("#service-state");
   if (!el) return;
   el.dataset.state = ok ? "ok" : "down";
-  el.textContent = ok ? "服务正常" : "连不上授权服务";
+  el.textContent = ok ? "服务正常" : "网络不通 · 请换网络或加群";
 }
 
 /**
@@ -129,7 +155,7 @@ function applyPrices(prices) {
 
 async function loadStock() {
   try {
-    const response = await fetch(`${PAY_CONFIG.api}/v1/orders/stock`, { cache: "no-store" });
+    const response = await request("/v1/orders/stock");
     if (!response.ok) { setServiceState(false); return; }
     const result = await response.json().catch(() => ({}));
     if (!result || typeof result.stock !== "object" || result.stock === null) { setServiceState(false); return; }
@@ -227,6 +253,47 @@ function loadQr() {
 
 /* ---------- 与授权服务通信 ---------- */
 
+/** 记住上次成功的端点下标，后续轮询优先用它，避免每次都在两个域名之间来回探。 */
+let activeEndpoint = 0;
+
+/**
+ * 带端点故障转移的请求。
+ *
+ * 只在「网络层失败」和「5xx」时换下一个端点：4xx 是业务结论（套餐非法、订单不存在），
+ * 换端点只会拿到同一个答案，白花一次跨境请求。
+ */
+async function request(path, init) {
+  const endpoints = PAY_CONFIG.endpoints;
+  let lastError = null;
+  // 只要有一个端点是「网络层失败」，最终就按网络问题报：
+  // 混合故障（A 断网 + B 返回 5xx）时，真相是"连不上"，不是"你填错了"。
+  let networkError = null;
+  for (let attempt = 0; attempt < endpoints.length; attempt += 1) {
+    const index = (activeEndpoint + attempt) % endpoints.length;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(endpoints[index] + path, {
+        ...init,
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      clearTimeout(timer);
+      if (response.status >= 500 && attempt < endpoints.length - 1) {
+        lastError = new Error("订单服务暂不可用");
+        continue;
+      }
+      activeEndpoint = index;
+      return response;
+    } catch (error) {
+      clearTimeout(timer);
+      if (!networkError) networkError = error;
+      lastError = error;
+    }
+  }
+  throw networkError || lastError || new Error("订单服务暂不可用");
+}
+
 function readForm() {
   const contact = $("#contact").value.trim();
   const password = $("#password").value;
@@ -255,7 +322,7 @@ async function createOrder() {
   lock(true);
   const generation = state.generation;
   try {
-    const response = await fetch(`${PAY_CONFIG.api}/v1/orders`, {
+    const response = await request("/v1/orders", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ planDays: Number(state.plan), paymentMethod: state.method, contact: values.contact, queryPassword: values.password }),
@@ -277,8 +344,15 @@ async function createOrder() {
   } catch (error) {
     if (generation !== state.generation) return;
     lock(false);
-    hint.textContent = error.later ? `${error.message}，请稍等几分钟再试一次` : `${error.message}，请检查填写内容`;
     hint.classList.add("is-error");
+    if (isNetworkError(error)) {
+      // 网络不通跟买家填了什么完全无关，必须给出能继续往下走的路，
+      // 而不是让他对着一个只会说「请检查填写内容」的死页面。
+      hint.innerHTML = NETWORK_HINT_HTML;
+      toast("连不上支付服务，可加群直接下单");
+      return;
+    }
+    hint.textContent = error.later ? `${error.message}，请稍等几分钟再试一次` : `${error.message}，请检查填写内容`;
     toast(error.later ? "稍等几分钟再试，填写内容不用改" : error.message);
   }
 }
@@ -296,8 +370,8 @@ function showOrder(order) {
 async function poll(generation) {
   if (generation !== state.generation || !state.order || state.expired) return;
   try {
-    const url = `${PAY_CONFIG.api}/v1/orders/${encodeURIComponent(state.order.orderId)}?token=${encodeURIComponent(state.order.orderToken)}`;
-    const response = await fetch(url, { cache: "no-store" });
+    const path = `/v1/orders/${encodeURIComponent(state.order.orderId)}?token=${encodeURIComponent(state.order.orderToken)}`;
+    const response = await request(path);
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result?.error?.message || "订单状态暂不可用");
     if (generation !== state.generation) return;

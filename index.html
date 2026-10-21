@@ -2,15 +2,18 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://kzqgphxrghdclkwneqyn.supabase.co https://license.re2347.ccwu.cc; base-uri 'none'; form-action 'self'; object-src 'none'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com https://pay-api.re2347.ccwu.cc https://kzqgphxrghdclkwneqyn.supabase.co https://license.re2347.ccwu.cc; base-uri 'none'; form-action 'self'; object-src 'none'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="LeagueYunara 密钥版授权购买：支付宝或微信扫码，到账自动发码，凭联系方式与查询密码随时找回。" />
     <title>购买授权 · LeagueYunara</title>
     <link rel="icon" href="./assets/mark.png" type="image/png" />
-    <!-- 库存查询在 pay.js 初始化时就要打 Supabase；提前握手，省掉那次 DNS+TCP+TLS 排队 -->
+    <!-- 库存查询在 pay.js 初始化时就要打支付接口；提前握手，省掉那次 DNS+TCP+TLS 排队。
+         三条都留着：SCF 香港是主通道，Supabase 是第二通道，CF Worker 是最后兜底。 -->
+    <link rel="preconnect" href="https://1476066536-elj6sayzy3.ap-hongkong.tencentscf.com" crossorigin />
     <link rel="preconnect" href="https://kzqgphxrghdclkwneqyn.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://pay-api.re2347.ccwu.cc" crossorigin />
     <link rel="stylesheet" href="./pay.css" />
   </head>
   <body>
