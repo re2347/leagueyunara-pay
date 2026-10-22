@@ -8,8 +8,8 @@ const QUERY_CONFIG = {
   ],
 };
 
-/** 单个端点的请求上限，与 pay.js 对齐：查单页等 8 秒已经是极限。 */
-const REQUEST_TIMEOUT_MS = 5000;
+/** 单个端点的请求上限，与 pay.js 对齐：10 秒，容得下 SCF 的冷启动（详见 pay.js 同名常量的注释）。 */
+const REQUEST_TIMEOUT_MS = 10_000;
 
 /** 记住上次成功的端点下标，后续请求优先复用它，不必每次都从主通道重探。 */
 let activeEndpoint = 0;

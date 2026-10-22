@@ -23,8 +23,14 @@ const PAY_CONFIG = {
 const STORAGE_KEY = "cskin.pay.order.v2";
 const POLL_MS = 5000;
 const TICK_MS = 1000;
-/** 单个端点的请求上限。买家在付款页上等 8 秒已经是极限，5 秒切端点更划算。 */
-const REQUEST_TIMEOUT_MS = 5000;
+/**
+ * 单个端点的请求上限。原来是 5 秒，但 SCF 那条是 Web 函数，闲置后冷启动实测 3.4s，
+ * 加上握手就是 3.7~4s —— 卡在 5 秒线上，偶发抖动一下就误判成"主通道不通"，
+ * 白掉一次 Supabase（实测中位 766ms，比热态的 SCF 慢一倍多）。
+ * 给到 10 秒：冷启动那一发留在主通道里，只有真的连不上才换线。
+ * 代价是三条全挂时的最坏等待变成 3×10s，但那种情况下买家本来就要加群下单。
+ */
+const REQUEST_TIMEOUT_MS = 10_000;
 
 /**
  * 网络层失败（fetch 抛 TypeError / 超时被 abort）和业务失败必须分开：
